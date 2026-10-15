@@ -1,0 +1,4 @@
+id: 43d8e1bc-8e7e-4e8e-82f1-1ff4334d9706
+name: Webapi/activitymimeattachment/fields
+source: 0
+value: activitymimeattachmentid,_objectid_value,_activityid_value,filename,subject,mimetype,filesize

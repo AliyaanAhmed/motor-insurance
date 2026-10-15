@@ -1,0 +1,18 @@
+accountrelationship: 
+adx_entitypermission_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+- 409cc53e-4ccf-4378-a27f-b92286057698
+- def1444d-2178-4fb9-a61f-d7ae21f623ee
+append: true
+appendto: true
+contactrelationship: 
+create: true
+delete: true
+entitylogicalname: aur_motor_master_data
+entityname: Master Table
+id: b4849f7e-8f2e-43cf-b0dc-1ce386b810f6
+parententitypermission: 
+parentrelationship: 
+read: true
+scope: 756150000
+write: true

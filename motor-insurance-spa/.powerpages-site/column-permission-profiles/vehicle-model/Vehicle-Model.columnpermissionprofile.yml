@@ -1,0 +1,9 @@
+adx_columnpermissionprofile_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+allcolumnpermissions:
+- 746610000
+- 746610001
+- 746610002
+id: accf9944-fac2-f111-aaaf-6045bd3e0166
+profilename: Vehicle Model
+tablename: aur_vehicle_model

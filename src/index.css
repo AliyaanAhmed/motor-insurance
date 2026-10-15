@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800&display=swap');
+
+:root {
+  font-family: 'Roboto', 'Segoe UI', sans-serif;
+  color: #071827;
+  background: #f4f6f8;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --font-ui: 'Roboto', 'Segoe UI', sans-serif;
+  --font-display: 'Roboto', 'Segoe UI', sans-serif;
+  --navy: #071827;
+  --blue: #225BBE;
+  --blue-deep: #19499C;
+  --gold: #b58b42;
+  --mist: #f4f6f8;
+  --border: #d9e2ec;
+  --muted: #61778b;
+  --teal: #225BBE;
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-behavior: smooth; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, input, select, textarea { font: inherit; }
+button { color: inherit; }
+a { color: inherit; }
+::selection { color: var(--navy); background: #dde1e5; }
+
+/* Keep supplied transparent artwork and year controls fitted to their cards. */
+.hero-skyline { inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; object-position: center bottom !important; mix-blend-mode: multiply; }
+.summary-landscape img { inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; object-position: center bottom !important; mix-blend-mode: multiply; }
+.app-shell .summary-vehicle { isolation: auto !important; }
+.year-grid { display: grid !important; }
+.make-choice { flex-direction: column; align-items: center; justify-content: center; min-height: 78px; gap: 6px; text-align: center; }
+.make-choice.selected > svg:last-child { position: absolute; top: 6px; right: 6px; width: 14px; height: 14px; margin: 0; }
+.vehicle-art-image, .body-choice-image, .art-car img { mix-blend-mode: multiply; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

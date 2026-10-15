@@ -1,0 +1,4 @@
+id: 57475844-0f20-4dd1-babe-c1ac6c9d1902
+name: Webapi/activitypointer/fields
+source: 0
+value: activityid,subject,description,statuscode,directioncode,senton,actualend,createdon,_regardingobjectid_value

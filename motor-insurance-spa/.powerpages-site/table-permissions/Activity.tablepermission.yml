@@ -1,0 +1,18 @@
+accountrelationship: 
+adx_entitypermission_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+- 409cc53e-4ccf-4378-a27f-b92286057698
+- def1444d-2178-4fb9-a61f-d7ae21f623ee
+append: false
+appendto: false
+contactrelationship: 
+create: false
+delete: false
+entitylogicalname: activitypointer
+entityname: Activity
+id: e58a5bac-984b-41a9-ab4a-dd1a8c316673
+parententitypermission: 
+parentrelationship: 
+read: true
+scope: 756150000
+write: false

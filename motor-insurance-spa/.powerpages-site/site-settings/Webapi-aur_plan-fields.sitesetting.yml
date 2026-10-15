@@ -1,0 +1,4 @@
+id: 1221b989-89f8-40a2-b2b7-3c81466e6988
+name: Webapi/aur_plan/fields
+source: 0
+value: aur_planid,aur_name,aur_base_premium,_aur_product_value,_transactioncurrencyid_value

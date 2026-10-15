@@ -1,0 +1,4 @@
+﻿id: ad5cf4d5-77a9-47fa-8aeb-e78ba81c4143
+name: Webapi/aur_motor_master_data/fields
+source: 0
+value: aur_motor_master_dataid,aur_body_type,aur_engine_details,aur_first_registration_year,aur_name,aur_email,aur_claims_history,aur_license_age,aur_mobile_number,aur_model_year,aur_vehicle_condition,aur_vehicle_make,aur_vehicle_model,aur_vehicle_specifications,aur_vehicle_use

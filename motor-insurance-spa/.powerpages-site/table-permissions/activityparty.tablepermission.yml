@@ -1,0 +1,18 @@
+accountrelationship: 
+adx_entitypermission_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+- 409cc53e-4ccf-4378-a27f-b92286057698
+- def1444d-2178-4fb9-a61f-d7ae21f623ee
+append: true
+appendto: true
+contactrelationship: 
+create: true
+delete: true
+entitylogicalname: activityparty
+entityname: activityparty
+id: 8ccd67dd-0ccc-4ca1-a910-5f4a1c0c15b6
+parententitypermission: 
+parentrelationship: 
+read: true
+scope: 756150000
+write: true

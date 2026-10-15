@@ -1,0 +1,4 @@
+description: Enables or disables Azure AD as an external identity provider. By default, it is set to true.
+id: 0b813095-0aa3-4bb7-ae60-4a4f946d9f85
+name: Authentication/Registration/AzureADLoginEnabled
+value: true

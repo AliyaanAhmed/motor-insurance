@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 176" fill="none">
+  <rect x="1" y="1" width="298" height="174" rx="13" fill="#F7F8F4" stroke="#DEE2D5"/>
+  <path d="M14 15h272a7 7 0 0 1 7 7v25H7V22a7 7 0 0 1 7-7Z" fill="#ECEFE5"/>
+  <circle cx="27" cy="32" r="9" fill="#071827"/><path d="M23 32h8m-4-4v8" stroke="white" stroke-width="1.5"/>
+  <text x="44" y="29" fill="#071827" font-family="Arial,sans-serif" font-size="9" font-weight="700" letter-spacing=".5">UNITED ARAB EMIRATES</text>
+  <text x="44" y="39" fill="#687A86" font-family="Arial,sans-serif" font-size="6.5" letter-spacing=".3">VEHICLE REGISTRATION · SAMPLE</text>
+  <path d="M22 116h65l-5-22a8 8 0 0 0-7-6H38a8 8 0 0 0-7 6l-9 22Z" fill="#9BAAB8"/>
+  <path d="M35 94h36l4 16H29l6-16Z" fill="#E4EBF1"/><circle cx="37" cy="119" r="7" fill="#52687C"/><circle cx="73" cy="119" r="7" fill="#52687C"/>
+  <rect x="109" y="63" width="157" height="5" rx="2.5" fill="#AAB5AE"/><rect x="109" y="77" width="135" height="5" rx="2.5" fill="#D1D7CF"/>
+  <rect x="109" y="96" width="72" height="5" rx="2.5" fill="#D1D7CF"/><rect x="190" y="96" width="76" height="5" rx="2.5" fill="#D1D7CF"/>
+  <rect x="109" y="111" width="157" height="5" rx="2.5" fill="#D1D7CF"/><rect x="109" y="126" width="102" height="5" rx="2.5" fill="#D1D7CF"/>
+  <rect x="109" y="141" width="68" height="15" rx="3" fill="#E2E6DD"/>
+  <text x="18" y="164" fill="#77899C" font-family="Arial,sans-serif" font-size="6.5" letter-spacing=".7">ILLUSTRATIVE DOCUMENT</text>
+</svg>

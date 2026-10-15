@@ -1,0 +1,12 @@
+adx_entitypermission_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+append: true
+appendto: true
+create: true
+delete: true
+entitylogicalname: email
+entityname: Email
+id: db6b2a11-0fc3-f111-aaaf-6045bd3e0166
+read: true
+scope: 756150000
+write: true

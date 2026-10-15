@@ -1,0 +1,4 @@
+id: 43d8e1bc-8e7e-4e8e-82f1-1ff4334d9702
+name: Webapi/email/fields
+source: 0
+value: activityid,subject,description,statuscode,directioncode,senton,actualend,createdon,_regardingobjectid_value

@@ -1,0 +1,9 @@
+adx_columnpermissionprofile_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+allcolumnpermissions:
+- 746610000
+- 746610001
+- 746610002
+id: 97454d18-07c3-f111-aaaf-6045bd3e0166
+profilename: Sharepoint
+tablename: sharepointdocument

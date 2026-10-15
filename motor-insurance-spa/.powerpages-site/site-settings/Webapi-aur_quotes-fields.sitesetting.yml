@@ -1,0 +1,4 @@
+id: 962036b8-ac87-486e-88e6-4081f6efa588
+name: Webapi/aur_quotes/fields
+source: 0
+value: aur_quotesid,aur_name,aur_product,aur_plan,aur_contact,aur_base_premium,aur_vehicle_value,aur_customer_data,statuscode,aur_risk_score,createdon,modifiedon,_aur_plan_value

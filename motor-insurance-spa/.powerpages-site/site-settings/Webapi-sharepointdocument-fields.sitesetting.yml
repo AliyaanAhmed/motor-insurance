@@ -1,0 +1,4 @@
+id: b28d1276-a8ac-4429-b022-0d9b27c532b8
+name: Webapi/sharepointdocument/fields
+source: 0
+value: documentid,fullname,relativelocation,sharepointcreatedon,filetype,absoluteurl,modified,title,readurl,sharepointdocumentid,isrecursivefetch,regardingobjectid

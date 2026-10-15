@@ -1,0 +1,10 @@
+adx_CloudFlowConsumer_adx_webrole:
+- 13bf282e-254c-4eaa-9855-83cda75082de
+- 409cc53e-4ccf-4378-a27f-b92286057698
+- def1444d-2178-4fb9-a61f-d7ae21f623ee
+flowapiurl: /_api/cloudflow/v1.0/trigger/11e6c094-41c2-f111-aaaf-6045bd403ec2
+flowtriggerurl: ''
+id: ce300879-00c3-f111-aaaf-6045bd40375a
+metadata: ''
+name: When HTTP Request Received - Upload Documents in SharePoint - Inquiry
+processid: 11e6c094-41c2-f111-aaaf-6045bd403ec2
