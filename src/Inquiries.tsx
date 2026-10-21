@@ -1,18 +1,13 @@
 ﻿import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
-  Activity, ArrowLeft, ArrowRight, BadgeCheck, CarFront, ChevronDown, ChevronRight, ExternalLink, RefreshCw,
+  ArrowLeft, ArrowRight, BadgeCheck, CarFront, ChevronDown, ChevronRight, ExternalLink, RefreshCw,
   CircleDollarSign, FileArchive, FileCode, FileImage, FileSpreadsheet, FileText, Inbox, Info, Mail, Music2, Paperclip, Search, ShieldCheck, UserRound, Video,
 } from 'lucide-react'
 import type { InquiryRecord } from './inquiryData'
 import type { InquiryEmailActivity, SharePointInquiryDocument } from './powerPagesApi'
 
-const allProductsFilter = 'All products'
 const isLivePortal = () => window.location.hostname.toLowerCase().endsWith('powerappsportals.com') || window.location.hostname.toLowerCase().endsWith('powerpages.microsoft.com')
-
-function money(value: number) {
-  return `AED ${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
-}
 
 function premiumMoney(value: number) {
   return `AED ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -96,47 +91,37 @@ function PremiumBreakdownHeader({ premium, available, status }: { premium: Inqui
 }
 
 export function InquiryGrid({ inquiries, loading = false, error = '', onRetry }: { inquiries: InquiryRecord[]; loading?: boolean; error?: string; onRetry?: () => void }) {
-  const products = useMemo(() => [...new Set(inquiries.map((inquiry) => inquiry.payload['Insurance product']).filter(Boolean))].sort((a, b) => a.localeCompare(b)), [inquiries])
-  const filters = [allProductsFilter, ...products]
-  const [filter, setFilter] = useState(allProductsFilter)
   const [search, setSearch] = useState('')
   const scoped = useMemo(() => inquiries.filter((inquiry) => {
-    const matchesFilter = filter === allProductsFilter || inquiry.payload['Insurance product'] === filter
     const haystack = `${inquiry.id} ${inquiry.title} ${inquiry.payload['Driver details']['Email address']} ${inquiry.payload['Vehicle make']} ${inquiry.payload['Vehicle model']}`.toLowerCase()
-    return matchesFilter && haystack.includes(search.trim().toLowerCase())
-  }), [filter, inquiries, search])
-  const premiumTotal = scoped.reduce((total, inquiry) => total + inquiry.totalPremium, 0)
-  const riskAverage = scoped.length ? Math.round(scoped.reduce((total, inquiry) => total + inquiry.riskScore, 0) / scoped.length) : 0
-  const filterCount = (label: string) => label === allProductsFilter
-    ? inquiries.length
-    : inquiries.filter((inquiry) => inquiry.payload['Insurance product'] === label).length
+    return haystack.includes(search.trim().toLowerCase())
+  }), [inquiries, search])
 
   return <main className="inquiries-page">
     <div className="inquiries-titlebar">
       <div><span className="eyebrow">MOTOR INSURANCE · WORKSPACE</span><h1>Inquiries</h1><p>Review quote requests and the details behind each one.</p></div>
       <Link className="button button-primary" to="/quote/0">Create inquiry <ArrowRight size={16} /></Link>
     </div>
-    <div className="inquiry-filters" role="group" aria-label="Filter by insurance product">
-      {filters.map((item) => <button type="button" aria-pressed={filter === item} className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)}>{item}<span>{filterCount(item)}</span></button>)}
-    </div>
-    <section className="inquiry-metrics" aria-label="Inquiry summary">
-      <article><span className="inquiry-metric-icon"><FileText size={17} /></span><div><small>VISIBLE RECORDS</small><b>{scoped.length}</b><p>Current queue after scope and search.</p></div></article>
-      <article><span className="inquiry-metric-icon"><CircleDollarSign size={18} /></span><div><small>PREMIUM TOTAL</small><b>{money(premiumTotal)}</b><p>Gross premium from the visible queue.</p></div></article>
-      <article><span className="inquiry-metric-icon"><Activity size={18} /></span><div><small>AVG. RISK SCORE</small><b>{riskAverage}</b><p>Average underwriting score in this view.</p></div></article>
-    </section>
-    <section className="inquiry-table-card">
-      <div className="inquiry-table-toolbar"><div><span className="eyebrow">INQUIRY REGISTER</span><b>{scoped.length} {scoped.length === 1 ? 'record' : 'records'}</b></div><label className="inquiry-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search inquiries" aria-label="Search inquiries" />{search && <button type="button" onClick={() => setSearch('')} aria-label="Clear search">×</button>}</label></div>
-      <div className="inquiry-table-scroll"><table className="inquiry-table"><thead><tr><th>Inquiry</th><th>Product</th><th>Status</th><th>Risk score</th><th>Premium</th><th>Updated</th></tr></thead>
-        <tbody>{loading ? <tr><td colSpan={6} className="inquiry-empty-row"><InquiryLoadingState label="Loading inquiries" compact /></td></tr> : error ? <tr><td colSpan={6} className="inquiry-empty-row"><b>Could not load inquiries</b><small>{error}</small>{onRetry && <button type="button" className="text-button" onClick={onRetry}>Retry</button>}</td></tr> : scoped.map((inquiry) => <tr key={inquiry.id}>
-          <td className="inquiry-primary-cell"><Link to={`/inquiries/${inquiry.id}`} className="inquiry-record-link">{inquiry.title}</Link><small>{inquiry.description}</small></td>
-          <td><b>{inquiry.payload['Insurance product']}</b><small>{inquiry.plan}</small></td>
-          <td><InquiryStatus status={inquiry.status} /></td>
-          <td><div className="risk-score"><b>{inquiry.riskScore}</b><span>Moderate</span><i><em style={{ width: `${inquiry.riskScore}%` }} /></i></div></td>
-          <td><b>{money(inquiry.totalPremium)}</b></td>
-          <td><span className="updated-date">{inquiry.updatedAt}</span></td>
-        </tr>)}{!loading && !error && scoped.length === 0 && <tr><td colSpan={6} className="inquiry-empty-row"><span><Search size={18} /></span><b>No inquiries match this view</b><small>Try a different category or search term.</small></td></tr>}</tbody>
-      </table></div>
-      <div className="inquiry-table-foot"><span>Showing {scoped.length} of {inquiries.length} inquiries</span>{!isLivePortal() && <span className="demo-data-note"><i /> Sample data · local proof of concept</span>}</div>
+    <section className="inquiry-register" aria-label="Inquiry register">
+      <div className="inquiry-register-toolbar"><label className="inquiry-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search inquiries" aria-label="Search inquiries" />{search && <button type="button" onClick={() => setSearch('')} aria-label="Clear search">×</button>}</label>{onRetry && <button type="button" className="button button-outline inquiry-list-refresh" onClick={onRetry}><RefreshCw size={15} /> Refresh</button>}</div>
+      {loading ? <div className="inquiry-card-state"><InquiryLoadingState label="Loading inquiries" compact /></div>
+        : error ? <div className="inquiry-card-state"><span className="inquiry-card-state-icon"><Inbox size={19} /></span><b>Could not load inquiries</b><small>{error}</small>{onRetry && <button type="button" className="button button-outline" onClick={onRetry}>Try again</button>}</div>
+          : scoped.length ? <div className="inquiry-card-grid">{scoped.map((inquiry) => {
+            const driver = inquiry.payload['Driver details']
+            const vehicle = [inquiry.payload['Model year'], inquiry.payload['Vehicle make'], inquiry.payload['Vehicle model']].filter(Boolean).join(' ')
+            return <Link to={`/inquiries/${inquiry.id}`} className="inquiry-card" key={inquiry.id} aria-label={`Open ${inquiry.title}`}>
+              <div className="inquiry-card-top"><span className="inquiry-card-icon"><ShieldCheck size={20} /></span><InquiryStatus status={inquiry.status} /><ArrowRight className="inquiry-card-arrow" size={18} aria-hidden="true" /></div>
+              <span className="inquiry-card-product">{inquiry.payload['Insurance product'] || 'Motor Insurance'}</span>
+              <h2>{inquiry.title}</h2>
+              <div className="inquiry-card-customer"><UserRound size={15} /><span>{driver['Full name'] || driver['Email address'] || 'Customer details unavailable'}</span></div>
+              <div className="inquiry-card-vehicle"><CarFront size={16} /><span>{vehicle || inquiry.type}</span></div>
+              <div className="inquiry-card-plan"><span>Selected plan</span><b>{inquiry.plan}</b></div>
+              <div className="inquiry-card-footer"><span><small>Total premium to be charged</small><b>{inquiry.premiumBreakdown.totalPremiumToBeCharged == null ? '—' : premiumMoney(inquiry.premiumBreakdown.totalPremiumToBeCharged)}</b></span><span><small>Updated</small><b>{inquiry.updatedAt}</b></span></div>
+              <div className="inquiry-card-action"><FileText size={15} /><span>View inquiry</span><ArrowRight size={16} /></div>
+            </Link>
+          })}</div>
+            : <div className="inquiry-card-state"><span className="inquiry-card-state-icon"><Search size={19} /></span><b>No inquiries match this view</b><small>Try a different category or search term.</small></div>}
+      {!loading && !error && <div className="inquiry-register-foot"><span>Showing {scoped.length} of {inquiries.length} inquiries</span>{!isLivePortal() && <span className="demo-data-note"><i /> Sample data · local proof of concept</span>}</div>}
     </section>
   </main>
 }

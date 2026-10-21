@@ -42,3 +42,7 @@ The inquiry title, status, refresh action, and premium summary belong to one sha
 ## Landing hero motion
 
 The single-screen landing hero uses a restrained arrival sequence: copy enters in order, then the Dubai scene, vehicle and small supporting details settle into place. Only the sun, vehicle, and journey marker continue with slow ambient movement. Respect `prefers-reduced-motion` by removing all motion; never make content depend on animation to become visible.
+
+## Inquiry register
+
+Present inquiries as a responsive grid of full-card links rather than a wide data table. Keep search and product filters directly above the cards, and retain a clear refresh action beside the create inquiry action. Each card should surface the record title, product, status, customer, vehicle, selected plan, premium, and last updated time, with one obvious view action. Use white surfaces, cool blue-tinted borders, navy text, and restrained brand-blue hover/focus states. At desktop widths use three columns, reduce to two as space narrows, and stack on small screens. Keep loading, error, and empty states within the same register surface. The whole card is the navigation target so there are no nested links or ambiguous click areas.

@@ -457,17 +457,28 @@ function fileToBase64(file: File): Promise<string> {
 
 export async function getDataverseInquiries(): Promise<InquiryRecord[]> {
   const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value'
-  const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat)'
-  const rows = await getAll<Record<string, unknown>>(`/_api/aur_quoteses?$select=${fields}&$expand=${expand}&$orderby=createdon desc`)
+  const motorProductId = await getMotorInsuranceProductId()
+  if (!motorProductId) return []
+  const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat),aur_product($select=aur_name)'
+  const rows = await getAll<Record<string, unknown>>(`/_api/aur_quoteses?$select=${fields},_aur_product_value&$expand=${expand}&$filter=_aur_product_value eq ${motorProductId}&$orderby=createdon desc`)
   return rows.map(mapInquiry).filter((inquiry) => inquiry.id)
 }
 
 export async function getDataverseInquiry(id: string): Promise<InquiryRecord | undefined> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined
-  const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value'
-  const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat)'
-  const rows = await getAll<Record<string, unknown>>(`/_api/aur_quoteses?$select=${fields}&$expand=${expand}&$filter=aur_quotesid eq ${id}`)
+  const motorProductId = await getMotorInsuranceProductId()
+  if (!motorProductId) return undefined
+  const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value,_aur_product_value'
+  const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat),aur_product($select=aur_name)'
+  const rows = await getAll<Record<string, unknown>>(`/_api/aur_quoteses?$select=${fields}&$expand=${expand}&$filter=aur_quotesid eq ${id} and _aur_product_value eq ${motorProductId}`)
   return rows[0] ? mapInquiry(rows[0]) : undefined
+}
+
+async function getMotorInsuranceProductId() {
+  const productName = quoteODataString('Motor Insurance')
+  const filter = encodeURIComponent(`aur_name eq '${productName}'`)
+  const rows = await getAll<{ aur_productsid?: string }>(`/_api/aur_productses?$select=aur_productsid&$filter=${filter}&$top=1`)
+  return rows[0]?.aur_productsid
 }
 
 /** Reads this inquiry's comma-separated SharePoint file paths from aur_documents_url. */
@@ -607,7 +618,10 @@ function safeDocumentUrl(value: unknown) {
 }
 
 function mapInquiry(row: Record<string, unknown>): InquiryRecord {
+  const product = row.aur_product as Record<string, unknown> | undefined
   const payload = parsePayload(row.aur_customer_data)
+  const productName = String(product?.aur_name ?? payload['Insurance product'] ?? '').trim()
+  payload['Insurance product'] = productName || 'Unknown product'
   const plan = row.aur_plan as Record<string, unknown> | undefined
   const statusValue = Number(row.statuscode)
   const statusLabel = Object.entries(row).find(([key]) => key.toLowerCase() === 'statuscode@odata.community.display.v1.formattedvalue')?.[1]
@@ -708,7 +722,7 @@ function normalizePayload(value: unknown): QuotePayload {
   const data = value as Record<string, unknown>
   const driver = (data['Driver details'] ?? {}) as Record<string, string>
   return {
-    'Insurance product': String(data['Insurance product'] ?? 'Motor Insurance'),
+    'Insurance product': String(data['Insurance product'] ?? ''),
     'Driver details': {
       'Full name': String(driver['Full name'] ?? ''),
       'Email address': String(driver['Email address'] ?? ''),
