@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "custom-api:check": "node scripts/check-quotes-custom-api.mjs"
+    "custom-api:check": "node scripts/check-quotes-custom-api.mjs",
+    "check:recovery": "node --experimental-strip-types scripts/check-inquiry-recovery.mjs"
   },
   "dependencies": {
     "@radix-ui/react-select": "^2.3.8",

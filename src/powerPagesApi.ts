@@ -44,7 +44,12 @@ type VehicleMakeRow = {
   aur_vehicle_makeid: string
   aur_name: string
 }
-type VehicleModelRow = { aur_vehicle_modelid: string; aur_name: string; _aur_vehicle_make_value?: string | null }
+type VehicleModelRow = {
+  aur_vehicle_modelid: string
+  aur_name: string
+  _aur_vehicle_make_value?: string | null
+  '_aur_vehicle_make_value@OData.Community.Display.V1.FormattedValue'?: string | null
+}
 
 const documentFlowPath = '/_api/cloudflow/v1.0/trigger/11e6c094-41c2-f111-aaaf-6045bd403ec2'
 // This signed Power Automate URL is a credential. Calls happen from the browser
@@ -69,6 +74,7 @@ const inquiryStatusLabels: Record<number, string> = {
   751820014: 'Property or Reinsurance Team',
   751820015: 'More Information Required',
   751820016: 'Quote Sent to Customer',
+  751820021: 'Incomplete Inquiry',
 }
 
 export function isPowerPagesRuntime() {
@@ -162,12 +168,40 @@ async function portalCloudFlowRequest(path: string, eventData: unknown) {
     body: new URLSearchParams({ eventData: JSON.stringify(eventData) }),
   })
   const text = response.status === 204 ? '' : await response.text()
-  if (!response.ok) {
+  let flowBody: unknown
+  if (text) {
+    try { flowBody = JSON.parse(text) } catch { flowBody = text }
+  }
+  const failure = typeof flowBody === 'object' && flowBody !== null
+    ? flowBody as { success?: unknown; error?: unknown; message?: unknown; ErrorCode?: unknown; errorCode?: unknown; Message?: unknown }
+    : undefined
+  const errorCode = String(failure?.ErrorCode ?? failure?.errorCode ?? '').trim()
+  // Power Automate can return 202 while the upload is still running. Treat
+  // that response as accepted even if its body contains a generic ErrorCode.
+  const asyncAccepted = response.status === 202
+  const flowReportedFailure = !asyncAccepted && (failure?.success === false || Boolean(failure?.error)
+    || Boolean(errorCode && !/^0+$/.test(errorCode))
+  )
+  console.info('[Inquiry documents] Power Pages flow response', {
+    status: response.status,
+    httpOk: response.ok,
+    asyncAccepted,
+    flowReportedFailure,
+    errorCode: errorCode || undefined,
+  })
+  if (!response.ok || flowReportedFailure) {
     let detail = text.slice(0, 500)
     try {
-      const parsed = JSON.parse(text) as { error?: { message?: string } }
-      detail = parsed.error?.message ?? detail
+      const parsed = JSON.parse(text) as { error?: { message?: string } | string; message?: string; ErrorCode?: unknown; Message?: unknown }
+      const message = typeof parsed.Message === 'string' ? parsed.Message : parsed.message
+      const code = parsed.ErrorCode == null ? '' : String(parsed.ErrorCode)
+      detail = typeof parsed.error === 'string' ? parsed.error : parsed.error?.message ?? `${code ? `ErrorCode ${code}${message ? ': ' : ''}` : ''}${message ?? detail}`
     } catch { /* Keep the response text for HTML portal errors. */ }
+    if (response.ok && flowReportedFailure) {
+      const reported = failure?.message
+      const message = typeof reported === 'string' ? reported : typeof failure?.Message === 'string' ? failure.Message : ''
+      detail = `${errorCode ? `ErrorCode ${errorCode}${message ? ': ' : ''}` : ''}${message || (typeof failure?.error === 'string' ? failure.error : detail)}`
+    }
     throw new Error(`Power Pages cloud flow returned ${response.status}${detail ? `: ${detail}` : ''}`)
   }
 }
@@ -203,9 +237,14 @@ export async function getVehicleCatalog(): Promise<VehicleMakeOption[]> {
     getAll<VehicleModelRow>('/_api/aur_vehicle_models?$select=aur_vehicle_modelid,aur_name,_aur_vehicle_make_value&$orderby=aur_name asc'),
   ])
 
+  const normalizeId = (value: string | null | undefined) => value?.replace(/[{}]/g, '').toLowerCase() ?? ''
+  const makeIdByName = new Map(makes.map((make) => [make.aur_name.trim().toLocaleLowerCase(), normalizeId(make.aur_vehicle_makeid)]))
   const modelsByMake = new Map<string, VehicleModelOption[]>()
   for (const model of models) {
-    const makeId = model._aur_vehicle_make_value?.toLowerCase()
+    // Power Pages normally returns the raw lookup GUID. The formatted lookup
+    // label is a safe fallback for sites where the portal omits the raw value.
+    const makeId = normalizeId(model._aur_vehicle_make_value)
+      || makeIdByName.get(model['_aur_vehicle_make_value@OData.Community.Display.V1.FormattedValue']?.trim().toLocaleLowerCase() ?? '')
     if (!makeId) continue
     const options = modelsByMake.get(makeId) ?? []
     options.push({ id: model.aur_vehicle_modelid, name: model.aur_name })
@@ -215,7 +254,7 @@ export async function getVehicleCatalog(): Promise<VehicleMakeOption[]> {
   return makes.map((make) => ({
     id: make.aur_vehicle_makeid,
     name: make.aur_name,
-    models: (modelsByMake.get(make.aur_vehicle_makeid.toLowerCase()) ?? [])
+    models: (modelsByMake.get(normalizeId(make.aur_vehicle_makeid)) ?? [])
       .sort((a, b) => a.name.localeCompare(b.name)),
   }))
 }
@@ -331,7 +370,9 @@ export async function findOrCreateContact(payload: QuotePayload) {
     firstname: firstName,
     lastname: lastName,
     address1_country: driver.Nationality,
-    mobilephone: `+971 ${driver['Mobile number'].trim()}`,
+    mobilephone: driver['Mobile number'].trim().startsWith('+971')
+      ? driver['Mobile number'].trim()
+      : driver['Mobile number'].trim() ? `+971 ${driver['Mobile number'].trim()}` : '',
   })
   return createdId(response)
 }
@@ -380,8 +421,68 @@ export async function createQuoteRecord(payload: QuotePayload, catalog: Insuranc
   return createdId(response)
 }
 
+export async function createIncompleteInquiry(payload: QuotePayload, catalog: InsuranceCatalog, contactId: string) {
+  const driver = payload['Driver details']
+  const { response } = await portalRequest('POST', '/_api/aur_quoteses', {
+    aur_name: `Inquiry for ${catalog.productName} - ${driver['Email address'].trim()}`,
+    'aur_product@odata.bind': `/aur_productses(${catalog.productId})`,
+    'aur_plan@odata.bind': `/aur_plans(${catalog.planId})`,
+    'aur_contact@odata.bind': `/contacts(${contactId})`,
+    aur_customer_data: JSON.stringify(payload),
+    statuscode: 751820021,
+  })
+  return createdId(response)
+}
+
+export async function saveIncompleteInquiry(inquiryId: string, payload: QuotePayload, contactId?: string) {
+  await assertInquiryIsIncomplete(inquiryId)
+  const driver = payload['Driver details']
+  await portalRequest('PATCH', `/_api/aur_quoteses(${inquiryId})`, {
+    aur_name: `Inquiry for ${payload['Insurance product']} - ${driver['Email address'].trim()}`,
+    aur_customer_data: JSON.stringify(payload),
+    ...(contactId ? { 'aur_contact@odata.bind': `/contacts(${contactId})` } : {}),
+  })
+}
+
+export async function completeIncompleteInquiry(inquiryId: string, payload: QuotePayload, catalog: InsuranceCatalog, vehicleValue: VehicleValueRange, premium: VehiclePremiumCalculation) {
+  await assertInquiryIsIncomplete(inquiryId)
+  const driver = payload['Driver details']
+  if (!Number.isFinite(vehicleValue.average) || vehicleValue.average < 0) {
+    throw new Error('The vehicle estimate is not valid, so the premium cannot be calculated.')
+  }
+  await portalRequest('PATCH', `/_api/aur_quoteses(${inquiryId})`, {
+    aur_name: `Inquiry for ${catalog.productName} - ${driver['Email address']}`,
+    'aur_product@odata.bind': `/aur_productses(${catalog.productId})`,
+    'aur_plan@odata.bind': `/aur_plans(${catalog.planId})`,
+    aur_base_premium: premium.basePremiumPercentage,
+    aur_additional_premium_percentage: 0,
+    aur_total_premium_percentage: premium.totalPremiumPercentage,
+    aur_gross_premium: premium.grossPremium,
+    aur_total_amount_charge: premium.totalAmountCharge,
+    aur_vehicle_value: String(Number(vehicleValue.average.toFixed(2))),
+    aur_customer_data: JSON.stringify(payload),
+    statuscode: 751820006,
+    aur_risk_score: 50,
+  })
+}
+
+async function assertInquiryIsIncomplete(inquiryId: string) {
+  if (await getInquiryStatusCode(inquiryId) !== 751820021) {
+    throw new Error('This inquiry is no longer incomplete. Refresh the page to view its current status.')
+  }
+}
+
+export async function getInquiryStatusCode(inquiryId: string) {
+  const rows = await getAll<{ statuscode?: number }>(`/_api/aur_quoteses?$select=aur_quotesid,statuscode&$filter=aur_quotesid eq ${inquiryId}&$top=1`)
+  return rows[0]?.statuscode == null ? undefined : Number(rows[0].statuscode)
+}
+
 export async function markQuoteProductMatched(inquiryId: string) {
   await portalRequest('PATCH', `/_api/aur_quoteses(${inquiryId})`, { statuscode: 751820007 })
+}
+
+export function isIncompleteInquiryStatus(status: string) {
+  return status === 'Incomplete Inquiry'
 }
 
 export async function createMotorMasterData(payload: QuotePayload, makeId: string, modelId: string) {
@@ -406,11 +507,38 @@ export async function createMotorMasterData(payload: QuotePayload, makeId: strin
 
 }
 
+const completedDocumentUploads = new Map<string, Set<string>>()
+
 export async function invokeDocumentFlow(inquiryId: string, files: File[]) {
-  if (!files.length) return
+  if (!files.length) {
+    console.info('[Inquiry documents] No files selected; upload flow skipped', { inquiryId })
+    return
+  }
 
   let completed = 0
-  for (const file of files) {
+  let uploadedFiles = completedDocumentUploads.get(inquiryId)
+  if (!uploadedFiles) {
+    uploadedFiles = new Set<string>()
+    completedDocumentUploads.set(inquiryId, uploadedFiles)
+  }
+  for (const [index, file] of files.entries()) {
+    const fileKey = `${file.name}|${file.size}|${file.lastModified}`
+    if (uploadedFiles.has(fileKey)) {
+      completed += 1
+      console.info('[Inquiry documents] File already uploaded in this session; skipping retry', {
+        inquiryId,
+        fileNumber: index + 1,
+        fileCount: files.length,
+      })
+      continue
+    }
+    console.info('[Inquiry documents] Upload started', {
+      inquiryId,
+      fileNumber: index + 1,
+      fileCount: files.length,
+      bytes: file.size,
+      contentType: file.type || 'application/octet-stream',
+    })
     try {
       await portalCloudFlowRequest(documentFlowPath, {
         recordId: inquiryId,
@@ -419,9 +547,21 @@ export async function invokeDocumentFlow(inquiryId: string, files: File[]) {
           contentBytes: await fileToBase64(file),
         },
       })
+      uploadedFiles.add(fileKey)
       completed += 1
+      console.info('[Inquiry documents] Upload completed', {
+        inquiryId,
+        fileNumber: index + 1,
+        fileCount: files.length,
+      })
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'The request was blocked.'
+      console.error('[Inquiry documents] Upload failed', {
+        inquiryId,
+        fileNumber: index + 1,
+        fileCount: files.length,
+        error: detail,
+      })
       throw new Error(`Inquiry ${inquiryId} and its vehicle data were created, but document ${completed + 1} of ${files.length} (${file.name}) failed: ${detail}`)
     }
   }
@@ -456,7 +596,7 @@ function fileToBase64(file: File): Promise<string> {
 }
 
 export async function getDataverseInquiries(): Promise<InquiryRecord[]> {
-  const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value'
+  const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value,_aur_contact_value'
   const motorProductId = await getMotorInsuranceProductId()
   if (!motorProductId) return []
   const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat),aur_product($select=aur_name)'
@@ -468,8 +608,8 @@ export async function getDataverseInquiry(id: string): Promise<InquiryRecord | u
   if (!/^[0-9a-f-]{36}$/i.test(id)) return undefined
   const motorProductId = await getMotorInsuranceProductId()
   if (!motorProductId) return undefined
-  const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value,_aur_product_value'
-  const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat),aur_product($select=aur_name)'
+  const fields = 'aur_quotesid,aur_name,aur_base_premium,aur_additional_premium_percentage,aur_total_premium_percentage,aur_gross_premium,aur_total_amount_charge,aur_vehicle_value,aur_risk_score,aur_customer_data,statuscode,aur_underwriter_action_status,aur_underwriter_sub_action,createdon,modifiedon,_aur_plan_value,_aur_product_value,_aur_contact_value'
+  const expand = 'aur_plan($select=aur_name,aur_base_premium,aur_vat),aur_product($select=aur_name),aur_contact($select=contactid,fullname,emailaddress1,mobilephone)'
   const rows = await getAll<Record<string, unknown>>(`/_api/aur_quoteses?$select=${fields}&$expand=${expand}&$filter=aur_quotesid eq ${id} and _aur_product_value eq ${motorProductId}`)
   return rows[0] ? mapInquiry(rows[0]) : undefined
 }
@@ -620,6 +760,19 @@ function safeDocumentUrl(value: unknown) {
 function mapInquiry(row: Record<string, unknown>): InquiryRecord {
   const product = row.aur_product as Record<string, unknown> | undefined
   const payload = parsePayload(row.aur_customer_data)
+  const contact = row.aur_contact as Record<string, unknown> | undefined
+  const driver = payload['Driver details']
+  // Older or partially saved drafts may have the Contact lookup but not its
+  // details in aur_customer_data. Use the linked Contact as a hydration fallback.
+  if (!driver['Full name'].trim() && typeof contact?.fullname === 'string') {
+    driver['Full name'] = contact.fullname
+  }
+  if (!driver['Email address'].trim() && typeof contact?.emailaddress1 === 'string') {
+    driver['Email address'] = contact.emailaddress1
+  }
+  if (!driver['Mobile number'].trim() && typeof contact?.mobilephone === 'string') {
+    driver['Mobile number'] = contact.mobilephone.replace(/^\+971\s*/i, '')
+  }
   const productName = String(product?.aur_name ?? payload['Insurance product'] ?? '').trim()
   payload['Insurance product'] = productName || 'Unknown product'
   const plan = row.aur_plan as Record<string, unknown> | undefined
@@ -660,6 +813,10 @@ function mapInquiry(row: Record<string, unknown>): InquiryRecord {
   }
   return {
     id: String(row.aur_quotesid ?? ''),
+    statusCode: Number.isFinite(statusValue) ? statusValue : undefined,
+    contactId: typeof row._aur_contact_value === 'string' ? row._aur_contact_value : undefined,
+    contactName: typeof contact?.fullname === 'string' ? contact.fullname : driver['Full name'],
+    contactEmail: typeof contact?.emailaddress1 === 'string' ? contact.emailaddress1 : driver['Email address'],
     title: String(row.aur_name ?? `Inquiry for ${payload['Insurance product']} - ${payload['Driver details']['Full name']}`),
     type: payload['Vehicle use'] === 'Commercial' ? 'Company Vehicle' : 'Personal Vehicle',
     plan: String(plan?.aur_name ?? '—'),
@@ -715,6 +872,7 @@ function emptyPayload(): QuotePayload {
     'Vehicle condition': '', 'Model year': '', 'Vehicle make': '', 'Vehicle model': '', 'Body type': '',
     'Engine details': '', 'Vehicle use': '', 'First registration': '', 'License age': '',
     'Vehicle specification': '', 'Claims history': '', Documents: [],
+    'Preferred contact': 'Email', 'Additional notes': '',
   }
 }
 
@@ -742,6 +900,9 @@ function normalizePayload(value: unknown): QuotePayload {
     'Vehicle specification': String(data['Vehicle specification'] ?? ''),
     'Claims history': String(data['Claims history'] ?? ''),
     Documents: Array.isArray(data.Documents) ? data.Documents as QuotePayload['Documents'] : [],
+    'Preferred contact': String(data['Preferred contact'] ?? 'Email'),
+    'Additional notes': String(data['Additional notes'] ?? ''),
+    'Resume step': Number.isInteger(Number(data['Resume step'])) ? Number(data['Resume step']) : undefined,
   }
 }
 

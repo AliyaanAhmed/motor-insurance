@@ -21,10 +21,17 @@ export type QuotePayload = {
   'Vehicle specification': string
   'Claims history': string
   Documents: InquiryDocument[]
+  'Preferred contact'?: string
+  'Additional notes'?: string
+  'Resume step'?: number
 }
 
 export type InquiryRecord = {
   id: string
+  statusCode?: number
+  contactId?: string
+  contactName?: string
+  contactEmail?: string
   title: string
   type: string
   plan: string
@@ -51,6 +58,38 @@ export type InquiryRecord = {
   updatedAt: string
   description: string
   payload: QuotePayload
+}
+
+// Status 751820006 is the transition point between saving a complete inquiry
+// and finishing motor-data, matching, and document operations. Expose a
+// recovery path only when its saved payload contains all required answers.
+export function isSubmissionRecoveryCandidate(record: InquiryRecord) {
+  if (record.statusCode !== 751820006) return false
+  const payload = record.payload
+  const driver = payload['Driver details']
+  const required = [
+    payload['Insurance product'], driver['Full name'], driver['Email address'], driver['Mobile number'],
+    driver['Age range'], driver.Nationality, payload['Vehicle condition'], payload['Model year'],
+    payload['Vehicle make'], payload['Vehicle model'], payload['Body type'], payload['Engine details'],
+    payload['Vehicle use'], payload['First registration'], payload['License age'],
+    payload['Vehicle specification'], payload['Claims history'],
+  ]
+  return required.every((value) => value.trim().length > 0)
+    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(driver['Email address'])
+}
+
+export function resolveVehicleSelection<TMake extends { id: string; name: string; models: { id: string; name: string }[] }>(
+  makes: TMake[], makeName: string, modelName: string,
+) {
+  const normalize = (value: string) => value.trim().toLocaleLowerCase()
+  const make = resolveVehicleMake(makes, makeName)
+  const model = make?.models.find((candidate) => normalize(candidate.name) === normalize(modelName))
+  return make && model ? { make, model } : undefined
+}
+
+export function resolveVehicleMake<TMake extends { id: string; name: string }>(makes: TMake[], makeName: string) {
+  const normalize = (value: string) => value.trim().toLocaleLowerCase()
+  return makes.find((candidate) => normalize(candidate.name) === normalize(makeName))
 }
 
 export const demoInquiries: InquiryRecord[] = [{

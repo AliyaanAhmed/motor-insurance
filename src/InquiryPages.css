@@ -45,6 +45,10 @@
 .inquiry-card-footer > span + span { text-align: right; }
 .inquiry-card-footer b { overflow: hidden; color: #12324a; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .inquiry-card-action { margin-top: auto; padding-top: 14px; display: flex; align-items: center; gap: 8px; color: #1759b9; font-size: 11px; font-weight: 650; }
+.inquiry-card-action-complete { min-height: 42px; margin: 16px -2px 0; padding: 0 12px; border: 1px solid #225bbe; border-radius: 9px; color: #fff; background: #225bbe; box-shadow: 0 4px 12px rgba(34,91,190,.16); font-size: 12px; font-weight: 700; }
+.inquiry-card-action-complete svg { flex: 0 0 auto; }
+.inquiry-card:hover .inquiry-card-action-complete { border-color: #174a9e; background: #174a9e; }
+.inquiry-card:focus-visible .inquiry-card-action-complete { outline: 3px solid rgba(34,91,190,.3); outline-offset: 3px; }
 .inquiry-card-action svg:last-child { margin-left: auto; transition: transform .18s ease; }
 .inquiry-card:hover .inquiry-card-action svg:last-child { transform: translateX(3px); }
 .inquiry-card-state { min-height: 225px; padding: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; border: 1px dashed #d4dee8; border-radius: 13px; background: rgba(255,255,255,.75); text-align: center; }

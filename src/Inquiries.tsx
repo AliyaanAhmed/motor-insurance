@@ -4,6 +4,7 @@ import {
   ArrowLeft, ArrowRight, BadgeCheck, CarFront, ChevronDown, ChevronRight, ExternalLink, RefreshCw,
   CircleDollarSign, FileArchive, FileCode, FileImage, FileSpreadsheet, FileText, Inbox, Info, Mail, Music2, Paperclip, Search, ShieldCheck, UserRound, Video,
 } from 'lucide-react'
+import { isSubmissionRecoveryCandidate } from './inquiryData'
 import type { InquiryRecord } from './inquiryData'
 import type { InquiryEmailActivity, SharePointInquiryDocument } from './powerPagesApi'
 
@@ -117,7 +118,7 @@ export function InquiryGrid({ inquiries, loading = false, error = '', onRetry }:
               <div className="inquiry-card-vehicle"><CarFront size={16} /><span>{vehicle || inquiry.type}</span></div>
               <div className="inquiry-card-plan"><span>Selected plan</span><b>{inquiry.plan}</b></div>
               <div className="inquiry-card-footer"><span><small>Total premium to be charged</small><b>{inquiry.premiumBreakdown.totalPremiumToBeCharged == null ? '—' : premiumMoney(inquiry.premiumBreakdown.totalPremiumToBeCharged)}</b></span><span><small>Updated</small><b>{inquiry.updatedAt}</b></span></div>
-              <div className="inquiry-card-action"><FileText size={15} /><span>View inquiry</span><ArrowRight size={16} /></div>
+              <div className={`inquiry-card-action ${inquiry.status === 'Incomplete Inquiry' || isSubmissionRecoveryCandidate(inquiry) ? 'inquiry-card-action-complete' : ''}`}><FileText size={15} /><span>{inquiry.status === 'Incomplete Inquiry' ? 'Complete inquiry' : isSubmissionRecoveryCandidate(inquiry) ? 'Finish inquiry' : 'View inquiry'}</span><ArrowRight size={16} /></div>
             </Link>
           })}</div>
             : <div className="inquiry-card-state"><span className="inquiry-card-state-icon"><Search size={19} /></span><b>No inquiries match this view</b><small>Try a different category or search term.</small></div>}

@@ -157,3 +157,20 @@
   .form-actions { gap: 8px; }
   .form-actions .button { max-width: none; padding-inline: 11px; font-size: 11px; }
 }
+.draft-save-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  margin: 2px 0 12px;
+  color: #61778b;
+  font-size: 12px;
+}
+.draft-save-dot { width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #98a9b8; }
+.draft-save-indicator.saved .draft-save-dot { background: #16834a; }
+.draft-save-indicator.saving .draft-save-dot { background: #175cd3; animation: draft-save-pulse 1s ease-in-out infinite; }
+.draft-save-indicator.error { color: #b42318; }
+.draft-save-indicator.error .draft-save-dot { background: #b42318; }
+.draft-save-indicator button { margin-left: auto; border: 0; background: transparent; color: #175cd3; font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; }
+@keyframes draft-save-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .draft-save-indicator.saving .draft-save-dot { animation: none; } }
